@@ -1,0 +1,24 @@
+# To build this image:
+# docker build -f keras.docker -t keras --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .
+# 
+# To run this container:
+# 
+# docker run -it --rm -e DISPLAY=unix$DISPLAY -v /home/bee:/tmp -v /tmp/.X11-unix:/tmp/.X11-unix keras /bin/bash -c 'cat /keras.readme.txt; bash'
+
+FROM tensorflow/tensorflow:latest-gpu
+
+# Disable Prompt During Packages Installation
+ARG DEBIAN_FRONTEND=noninteractive
+
+ARG USER_ID
+ARG GROUP_ID
+
+RUN pip install keras
+
+COPY keras.readme.txt /
+
+WORKDIR /tmp
+
+RUN addgroup --gid $GROUP_ID user
+RUN adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID user
+USER user  
