@@ -1,5 +1,13 @@
 # Dockerfiles
 
+Repository for some dockerfiles.
+
+# Table of Contents
+1. [Workflow example](#Workflow-example)
+2. [Silence Speaks](#Silence-Speaks)
+
+## Workflow example
+
 This is an example of a workflow with `docker`.
 
 Once you have `docker` installed, you have to create a dockerfile to create an image and then run the container, and sometimes it is difficult to remember all the options.
@@ -30,4 +38,25 @@ alias run_keras="docker run -it --rm -e DISPLAY=unix$DISPLAY -v /home/bee:/tmp -
 
 5. And now you can just execute `run_keras` and your container is working after displaying the info in `keras.readme.txt`.
 
+## Silence Speaks
+
+The dockerfile `silencespeaks.docker` encapsulates a web app to test the configuration recognizer demo.
+
+To build the image, execute 
+
+`docker build -f silencespeaks.docker -t silencespeaks .` 
+
+when located in the main directory of this repository.
+
+To run the container
+
+`docker run -it --rm -e DISPLAY=unix$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix -p 8050:8050 --device /dev/video0 silencespeaks /bin/bash -c 'cat /silencespeaks.readme.txt; cd /silencespeaks; python3 app.py'`
+
+The web server starts and to connect to it go to `http://0.0.0.0:8050/` in a tab in your browser.
+
+Then do:
+
+1. Click EXPERT
+2. Click TRAIN CONFIGURATIONS
+3. Select Medoids
 

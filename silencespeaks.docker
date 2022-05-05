@@ -1,0 +1,37 @@
+# To build this image:
+# docker build -f silencespeaks.docker -t silencespeaks .
+# 
+# To run this container:
+# 
+# docker run -it --rm -e DISPLAY=unix$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix -p 8050:8050 --device /dev/video0 silencespeaks /bin/bash -c 'cat /silencespeaks.readme.txt; cd /silencespeaks; python3 app.py'
+
+#Download base image ubuntu
+FROM ubuntu:20.04
+
+# LABEL about the custom image
+LABEL maintainer="nobody@nowhere.com"
+LABEL version="0.1"
+LABEL description="Silence Speaks"
+
+# Disable Prompt During Packages Installation
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get install -y python3-pip && \
+    apt-get install -y ipython3
+    
+RUN apt-get install -y libgl1-mesa-glx libglib2.0-0 libsm6 libxrender1 libxext6
+    
+RUN pip install dash && \
+    pip install dash_labs && \
+    pip install dash_bootstrap_components
+
+RUN pip install mediapipe
+RUN pip install pandas
+RUN pip install scipy
+    
+COPY silencespeaks.readme.txt /
+ADD silencespeaks /silencespeaks
+
+WORKDIR silencespeaks
+

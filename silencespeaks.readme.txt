@@ -1,0 +1,9 @@
+When the server is launched go to http://0.0.0.0:8050/ in a tab in your browser.
+
+Then do:
+
+1 - Click EXPERT
+2 - Click TRAIN CONFIGURATIONS
+3 - Select Medoids
+
+
