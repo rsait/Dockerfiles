@@ -1,0 +1,36 @@
+# To build this image:
+# docker build -f dataprep.docker -t dataprep --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .
+# 
+# To run this container, change /home/user by your directory in the following line:
+# 
+# docker run -it --rm --mount type=bind,source=/home/user,target=/tmp dataprep /bin/bash -c 'cat /dataprep.readme.txt; bash'
+
+#Download base image ubuntu
+FROM ubuntu:20.04
+
+# LABEL about the custom image
+LABEL maintainer="nobody@nowhere.com"
+LABEL version="0.1"
+LABEL description="Dataprep"
+
+# Disable Prompt During Packages Installation
+ARG DEBIAN_FRONTEND=noninteractive
+
+ARG USER_ID
+ARG GROUP_ID
+
+RUN apt-get update && \
+    apt-get install -y software-properties-common
+RUN apt-get install -y python3-pip
+    
+RUN pip install dataprep
+
+COPY dataprep.readme.txt /
+ADD dataprep /dataprep
+
+WORKDIR /tmp/
+
+RUN addgroup --gid $GROUP_ID user
+RUN adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID user
+USER user  
+    

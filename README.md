@@ -5,6 +5,7 @@ Repository for some dockerfiles.
 # Table of Contents
 1. [Workflow example](#Workflow-example)
 2. [Silence Speaks](#Silence-Speaks)
+3. [Dataprep](#Dataprep)
 
 ## Workflow example
 
@@ -59,4 +60,24 @@ Then do:
 1. Click EXPERT
 2. Click TRAIN CONFIGURATIONS
 3. Select Medoids
+
+## Dataprep
+
+The dockerfile `dataprep.docker` creates a container to work with the `dataprep` package, a Python package to create reports in html format.
+
+To see an example with the Titanic data, run:
+
+```bash
+python3 /dataprep/dataprep_titanic_example.py
+```
+
+The results are saved in `/tmp/report_titanic.html`
+
+To see an example of working with two-dimensional numpy arrays, run:
+
+```bash
+python3 /dataprep/dataprep_numpy_example.py
+```
+
+The results are saved in `/tmp/report_random.html`
 

@@ -1,0 +1,15 @@
+Container to work with the dataprep package, a Python package to create reports in html format.
+
+To see an example with the Titanic data, run:
+
+python3 /dataprep/dataprep_titanic_example.py
+
+The results are saved in /tmp/report_titanic.html
+
+To see an example of working with two-dimensional numpy arrays, run:
+
+python3 /dataprep/dataprep_numpy_example.py 
+
+The results are saved in /tmp/report_random.html
+
+
