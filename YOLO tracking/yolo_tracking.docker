@@ -1,0 +1,56 @@
+# This is intended to run https://github.com/mikel-brostrom/Yolov7_StrongSORT_OSNet
+
+# To build this image:
+# docker build -f yolo_tracking.docker -t yolo_tracking .
+
+# To run this container
+# docker run -it --rm --gpus all --shm-size=8g -e DISPLAY=unix$DISPLAY --device /dev/video0 --mount type=bind,source=$(echo $HOME),target=/tmp --mount type=bind,source=/tmp/.X11-unix,target=/tmp/.X11-unix yolo_tracking
+
+# Once inside the container, some examples:
+# 1 - Perform tracking of an included file: 
+# python track_with_classes.py --source basketball.mp4 --save-tracking --save-vid
+# 2 - Perform tracking of the webcam
+# python track_with_classes.py --source 0 --save-tracking --save-vid
+
+# Results are saved in the directory "runs"
+
+
+FROM ubuntu:22.04
+
+ARG DEBIAN_FRONTEND=noninteractive
+    
+RUN apt-get update 
+RUN apt-get update && apt-get install -y python3-pip
+RUN pip3 install pip==22.0.2
+RUN apt-get install -y git && \
+    apt-get install -y ffmpeg && \
+    apt-get install -y libsm6 libxext6 qtbase5-dev qt5-qmake qtbase5-dev-tools
+RUN apt-mark hold python3-pip git ffmpeg qtbase5-dev qt5-qmake qtbase5-dev-tools
+
+RUN echo 'alias python=python3' >> ~/.bashrc
+
+# to freeze the repository to a specific date
+RUN git clone --recurse-submodules https://github.com/mikel-brostrom/Yolov7_StrongSORT_OSNet.git && \
+    cd Yolov7_StrongSORT_OSNet && \
+    git checkout `git rev-list -n 1 --before="2024-03-14 00:00" master` && \
+    git submodule update --recursive --remote
+
+WORKDIR Yolov7_StrongSORT_OSNet
+RUN mkdir yolov7/weights
+RUN pip install -r requirements.txt
+
+# Assuming the model file is in the same directory as the Dockerfile
+# wget https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7.pt 
+COPY yolov7.pt weights/
+# wget https://drive.google.com/uc?id=1Kkx2zW89jq_NETu4u42CFZTMVD5Hwm6e
+COPY osnet_x0_25_msmt17.pt weights/
+
+# Assuming these example videos are also available
+COPY basketball.mp4 .
+COPY bar.mp4 .
+COPY dogs.mp4 .
+COPY street.mp4 .
+
+COPY track_with_classes.py .
+
+
