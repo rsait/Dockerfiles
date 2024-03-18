@@ -1,0 +1,7 @@
+# To build the image:
+# docker build -f test.docker -t test .
+
+# To create and run a container:
+# docker run -it --rm test
+
+FROM ubuntu:22.04

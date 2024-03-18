@@ -1,0 +1,17 @@
+#
+# This is intended to run https://github.com/mikel-brostrom/Yolov7_StrongSORT_OSNet
+
+# To build this image:
+# docker build -f yolo_tracking.docker -t yolo_tracking .
+
+# To run a container:
+# docker run -it --rm --gpus all --shm-size=8g -e DISPLAY=unix$DISPLAY --device /dev/video0 --mount type=bind,source=$(echo $HOME)/yolo_tracking_tmp,target=/tmp --mount type=bind,source=/tmp/.X11-unix,target=/tmp/.X11-unix yolo_tracking /bin/bash -c 'cat yolo_tracking.readme.txt; bash'
+
+# Once inside the container, some examples:
+# 1 - Perform tracking of an included file: 
+# python track_with_classes.py --source basketball.mp4 --save-tracking --save-vid
+# 2 - Perform tracking of the webcam
+# python track_with_classes.py --source 0 --save-tracking --save-vid
+
+# Results are saved in the directory "/tmp/runs", which could be mounted on "~/yolo_tracking_tmp"
+#
