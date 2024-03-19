@@ -19,6 +19,7 @@ The typical workflow is as follows:
 * Pull the image from [DockerHub](https://hub.docker.com/search?q=jmartinezot). As an example, We will pull the `test` image.
 ```bash
 docker pull jmartinezot/test
+docker tag jmartinezot/test test
 ```
 * To run the image, you could check the instructions on the corresponding Dockerfile, that are also copied in the corresponding section of this README file. Checking `test.docker` under the `test` subdirectory in this repository, we see that its content is the following:
 
@@ -137,12 +138,19 @@ To pull the image:
 ```bash
 docker pull jmartinezot/yolo_tracking
 ```
+To tag it with a simpler name:
+
+```bash
+docker tag jmartinezot/yolo_tracking yolo_tracking
+```
 
 The container can be created and run with 
 
 ```
 docker run -it --rm --gpus all --shm-size=8g -e DISPLAY=unix$DISPLAY --device /dev/video0 --mount type=bind,source=$(echo $HOME)/yolo_tracking_tmp,target=/tmp --mount type=bind,source=/tmp/.X11-unix,target=/tmp/.X11-unix yolo_tracking /bin/bash -c 'cat yolo_tracking.readme.txt; bash'
 ```
+
+Please remember to create the empty directory `yolo_tracking_tmp` under your home directory.
 
 Once inside the container, some examples could be:
 * Perform tracking of a file included in the image: 
@@ -156,7 +164,7 @@ python track_with_classes.py --source 0 --save-tracking --save-vid
 
 The script `track_with_classes` is a modification of the original `track.py` provided in the source tracker repository. That file is also present in this image.
 
-Results are saved in the directory "/tmrp/runs", with is mounted on "~/yolo_tracking_tmp" with the given command.
+Results are saved in the directory `/tmp/runs`, with is mounted on `~/yolo_tracking_tmp` with the given command.
 
 There are three types of results:
 
