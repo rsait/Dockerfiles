@@ -1,0 +1,16 @@
+# To build this image:
+# docker build -f mmpose_inferencer.docker -t mmpose_inferencer .
+# 
+# To run a container:
+# docker run -it --rm --gpus all --shm-size=8g -e DISPLAY=unix$DISPLAY --device /dev/video0 --mount type=bind,source=$(echo $HOME)/mmpose_inferencer_tmp,target=/tmp --mount type=bind,source=/tmp/.X11-unix,target=/tmp/.X11-unix mmpose_inferencer /bin/bash -c 'cat mmpose_inferencer.readme.txt; bash'
+
+FROM mmpose_official:latest
+
+# extra
+# RUN pip install -U openmim
+RUN pip install mmengine
+RUN pip install "mmcv>=2.0.1"
+RUN pip install "mmdet>=3.1.0"
+
+
+

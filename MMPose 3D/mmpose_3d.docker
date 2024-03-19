@@ -1,0 +1,26 @@
+# To build this image:
+# docker build -f mmpose_3d.docker -t mmpose_3d .
+# 
+# To run a container:
+# docker run -it --rm --gpus all --shm-size=8g -e DISPLAY=unix$DISPLAY --device /dev/video0 --mount type=bind,source=$(echo $HOME)/mmpose_3d_tmp,target=/tmp --mount type=bind,source=/tmp/.X11-unix,target=/tmp/.X11-unix mmpose_3d /bin/bash -c 'cat mmpose_3d.readme.txt; bash'
+
+
+FROM mmpose_inferencer:latest
+
+RUN pip install pandas
+
+# Assuming the model file is in the same directory as the Dockerfile
+COPY rtmo-l_16xb16-600e_body7-640x640-b37118ce_20231211.pth /root/.cache/torch/hub/checkpoints/
+COPY rtmpose-m_simcc-body7_pt-body7_420e-256x192-e48f03d0_20230504.pth /root/.cache/torch/hub/checkpoints/
+COPY rtmdet_m_8xb32-100e_coco-obj365-person-235e8209.pth /root/.cache/torch/hub/checkpoints/
+COPY motionbert_ft_h36m-d80af323_20230531.pth /root/.cache/torch/hub/checkpoints/
+COPY videopose_h36m_243frames_fullconv_supervised_cpn_ft-88f5abbb_20210527.pth /root/.cache/torch/hub/checkpoints/
+
+RUN mkdir -p mmpose_3d_examples
+COPY basketball.mp4 mmpose_3d_examples/
+COPY street.mp4 mmpose_3d_examples/
+COPY happy-crowd.jpg mmpose_3d_examples/
+COPY person_standing.jpg mmpose_3d_examples/
+COPY two_people_standing.jpg mmpose_3d_examples/
+
+COPY body3d_pose_extractor.py .

@@ -5,7 +5,8 @@ Instructions for working with some docker images that have already been uploaded
 # Table of Contents
 1. [Overview](#Overview)
 2. [YOLO tracking](#YOLO_tracking)
-3. [Contributing](#Contributing)
+3. [MMPose 3D](#MMPose_3D)
+4. [Contributing](#Contributing)
 
 ## Overview
 
@@ -173,6 +174,38 @@ There are three types of results:
 * A pickle file with a dataframe containing the same info too.
 
 More details about how to use the tracker can be found in the original [Yolov7 + StrongSORT with OSNet](https://github.com/mikel-brostrom/Yolov7_StrongSORT_OSNet) repository. 
+
+## MMPose 3D
+
+Image implementation based on a modification of the official MMPose docker image.
+
+To pull the image:
+
+```bash
+docker pull jmartinezot/mmpose_3d
+```
+To tag it with a simpler name:
+
+```bash
+docker tag jmartinezot/mmpose_3d mmpose_3d
+```
+
+The container can be created and run with 
+
+```
+docker run -it --rm --gpus all --shm-size=8g -e DISPLAY=unix$DISPLAY --device /dev/video0 --mount type=bind,source=$(echo $HOME)/mmpose_3d_tmp,target=/tmp --mount type=bind,source=/tmp/.X11-unix,target=/tmp/.X11-unix mmpose_3d /bin/bash -c 'cat mmpose_3d.readme.txt; bash'
+```
+
+Please remember to create the empty directory `mmpose_3d_tmp` under your home directory.
+
+Once inside the container, some examples could be:
+* Perform 3D pose estimation from a single image: 
+```bash
+python body3d_pose_extractor.py  \
+--input mmpose_3d_examples/two_people_standing.jpg \
+--output-root  /tmp \
+--save-predictions
+```
 
 
 ## Contributing
