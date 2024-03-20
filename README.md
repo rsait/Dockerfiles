@@ -4,8 +4,8 @@ Instructions for working with some docker images that have already been uploaded
 
 # Table of Contents
 1. [Overview](#Overview)
-2. [YOLO tracking](#YOLO_tracking)
-3. [MMPose 3D](#MMPose_3D)
+2. [YOLO tracking](#YOLO-tracking)
+3. [MMPose 3D](#MMPose-3D)
 4. [Contributing](#Contributing)
 
 ## Overview
@@ -158,10 +158,11 @@ Once inside the container, some examples could be:
 ```bash
 python track_with_classes.py --source basketball.mp4 --save-tracking --save-vid
 ```
-* Perform tracking of the webcam
+* Perform tracking of the webcam (press "q" to close the script and save the results to disk):
 ```bash
 python track_with_classes.py --source 0 --save-tracking --save-vid
 ```
+
 
 The script `track_with_classes` is a modification of the original `track.py` provided in the source tracker repository. That file is also present in this image.
 

@@ -5,18 +5,9 @@ python body3d_pose_extractor.py  \
 --output-root  /tmp \
 --save-predictions
 '''
-'''
-import pickle as pkl
-pred_save_pickle_path = "vis_results/results_two_people_standing.pkl"
-pred_save_pickle_path = "vis_results/results_164970135-b14e424c-765a-4180-9bc8-fa8d6abc5510.pkl"
-pred_save_pickle_path = "results_two_people_standing.pkl"
-with open(pred_save_pickle_path, 'rb') as f:
-    a = pkl.load(f)
-with open(pred_save_pickle_path, 'rb') as f:
-    pred_instances_list, bboxes_2d_list = pkl.load(f)
-print(pred_instances_list[0])
-'''
+
 from processimage import process_one_image
+
 import logging
 import mimetypes
 import os
@@ -61,13 +52,13 @@ device ='cuda:0'
 
 def parse_args():
     parser = ArgumentParser()
-    parser.add_argument('--input', type=str, default='/tmp/Github/Ireland/two_people_standing.jpg', help='Video path')
+    parser.add_argument('--input', type=str, default='mmpose_3d_examples/two_people_standing.jpg', help='Image path')
     parser.add_argument(
         '--output-root',
         type=str,
         default='vis_results',
-        help='Root of the output video file. '
-        'Default not saving the visualization video.')
+        help='Root of the output image file. '
+        'Default not saving the visualization image.')
     parser.add_argument(
         '--save-predictions',
         action='store_true',
@@ -85,6 +76,8 @@ def main():
 
     assert show or (args.output_root != '')
     assert args.input != ''
+
+    print(args)
 
     detector = init_detector(
         det_config, det_checkpoint, device=device.lower())
@@ -123,10 +116,7 @@ def main():
     # the dataset_meta is loaded from the checkpoint
     visualizer.set_dataset_meta(pose_lifter.dataset_meta)
 
-    if args.input == 'webcam':
-        input_type = 'webcam'
-    else:
-        input_type = mimetypes.guess_type(args.input)[0].split('/')[0]
+    input_type = mimetypes.guess_type(args.input)[0].split('/')[0]
 
     if args.output_root == '':
         save_output = False
@@ -134,8 +124,6 @@ def main():
         mmengine.mkdir_or_exist(args.output_root)
         output_file = os.path.join(args.output_root,
                                    os.path.basename(args.input))
-        if args.input == 'webcam':
-            output_file += '.mp4'
         save_output = True
 
     if args.save_predictions:
@@ -150,9 +138,10 @@ def main():
 
     pose_est_results_list = []
     pred_instances_list = []
+    bboxes_2d_list = []
     if input_type == 'image':
         frame = mmcv.imread(args.input, channel_order='rgb')
-        pose_est_results, pose_est_results_list, pred_3d_instances, _, bboxes_2d = process_one_image(
+        _, _, pred_3d_instances, _ , bboxes_2d = process_one_image(
             detector=detector,
             frame=frame,
             frame_idx=0,
@@ -162,70 +151,15 @@ def main():
             next_id=0,
             pose_lifter=pose_lifter,
             visualize_frame=frame,
-            visualizer=visualizer,
-            show=show)
+            visualizer=visualizer)
 
         if args.save_predictions:
             # save prediction results
-            instances_3d = split_instances(pred_3d_instances)
-            instances_2d=[{
-                            'keypoints': data_sample.pred_instances.keypoints,
-                            'keypoint_scores': data_sample.pred_instances.keypoint_scores,
-                            'track_id': data_sample.get('track_id', None)
-                        } for data_sample in pose_est_results]
-            pred_instances_list.append(dict(
-                frame_id=0,
-                instances_3d=instances_3d,
-                instances_2d=instances_2d,
-                bboxes_2d=bboxes_2d
-            ))
+            pred_instances_list = split_instances(pred_3d_instances)
+            bboxes_2d_list = bboxes_2d
 
-        if save_output:
-            frame_vis = visualizer.get_image()
-            mmcv.imwrite(mmcv.rgb2bgr(frame_vis), output_file)
 
-    elif input_type in ['webcam', 'video']:
-        next_id = 0
-        pose_est_results = []
 
-        if args.input == 'webcam':
-            video = cv2.VideoCapture(0)
-        else:
-            video = cv2.VideoCapture(args.input)
-
-        (major_ver, minor_ver, subminor_ver) = (cv2.__version__).split('.')
-        if int(major_ver) < 3:
-            fps = video.get(cv2.cv.CV_CAP_PROP_FPS)
-        else:
-            fps = video.get(cv2.CAP_PROP_FPS)
-
-        video_writer = None
-        frame_idx = 0
-
-        while video.isOpened():
-            success, frame = video.read()
-            frame_idx += 1
-
-            if not success:
-                break
-
-            pose_est_results_last = pose_est_results
-
-            # First stage: 2D pose detection
-            # make person results for current image
-            (pose_est_results, pose_est_results_list, pred_3d_instances,
-             next_id, bboxes_2d) = process_one_image(
-                 args=args,
-                 detector=detector,
-                 frame=frame,
-                 frame_idx=frame_idx,
-                 pose_estimator=pose_estimator,
-                 pose_est_results_last=pose_est_results_last,
-                 pose_est_results_list=pose_est_results_list,
-                 next_id=next_id,
-                 pose_lifter=pose_lifter,
-                 visualize_frame=mmcv.bgr2rgb(frame),
-                 visualizer=visualizer)
 
             if args.save_predictions:
                 # save prediction results
@@ -237,50 +171,34 @@ def main():
                             'keypoints': data_sample.pred_instances.keypoints,
                             'keypoint_scores': data_sample.pred_instances.keypoint_scores,
                             'track_id': data_sample.get('track_id', None)
-                        } for data_sample in pose_est_results],  # Add 2D keypoints and scores here
-                        bboxes_2d=bboxes_2d
+                        } for data_sample in pose_est_results]  # Add 2D keypoints and scores here
                     )
                 )
-            if save_output:
-                frame_vis = visualizer.get_image()
-                if video_writer is None:
-                    # the size of the image with visualization may vary
-                    # depending on the presence of heatmaps
-                    video_writer = cv2.VideoWriter(output_file, fourcc, fps,
-                                                   (frame_vis.shape[1],
-                                                    frame_vis.shape[0]))
+                bboxes_2d_list.append(
+                    dict(
+                        frame_id=frame_idx,
+                        bboxes_2d=bboxes_2d))
 
-                video_writer.write(mmcv.rgb2bgr(frame_vis))
 
-            if args.show:
-                # press ESC to exit
-                if cv2.waitKey(5) & 0xFF == 27:
-                    break
-                time.sleep(args.show_interval)
 
-        video.release()
 
-        if video_writer:
-            video_writer.release()
-    else:
-        args.save_predictions = False
-        raise ValueError(
-            f'file {os.path.basename(args.input)} has invalid format.')
+        if save_output:
+            frame_vis = visualizer.get_image()
+            mmcv.imwrite(mmcv.rgb2bgr(frame_vis), output_file)
 
     if args.save_predictions:
         with open(pred_save_path, 'w') as f:
             json.dump(
                 dict(
                     meta_info=pose_lifter.dataset_meta,
-                    instance_info=pred_instances_list),
+                    instance_info=(pred_instances_list, bboxes_2d_list)),
                 f,
                 indent='\t')
         print(f'predictions have been saved at {pred_save_path}')
         with open(pred_save_pickle_path, 'wb') as f:
-            pkl.dump((pred_instances_list),f)
+            pkl.dump((pred_instances_list, bboxes_2d_list),f)
 
     if save_output:
-        input_type = input_type.replace('webcam', 'video')
         print_log(
             f'the output {input_type} has been saved at {output_file}',
             logger='current',

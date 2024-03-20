@@ -24,3 +24,6 @@ COPY person_standing.jpg mmpose_3d_examples/
 COPY two_people_standing.jpg mmpose_3d_examples/
 
 COPY body3d_pose_extractor.py .
+COPY processimage.py .
+
+COPY body3d_pose_extractor_Ireland.py .
