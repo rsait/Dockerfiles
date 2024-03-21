@@ -68,7 +68,7 @@ device ='cuda:0'
 
 def parse_args():
     parser = ArgumentParser()
-    parser.add_argument('--input', type=str, default='/tmp/Github/Ireland/two_people_standing.jpg', help='Video path')
+    parser.add_argument('--input', type=str, default='/tmp/two_people_standing.jpg', help='Video path')
     parser.add_argument(
         '--output-root',
         type=str,
@@ -144,6 +144,7 @@ def main():
         if args.input == 'webcam':
             output_file += '.mp4'
         save_output = True
+        save_output = False
 
     if args.save_predictions:
         assert args.output_root != ''
@@ -194,7 +195,6 @@ def main():
     elif input_type in ['webcam', 'video']:
         next_id = 0
         pose_est_results = []
-        frames_to_save = []
         frame_count = 0
 
         if args.input == 'webcam':
@@ -273,16 +273,13 @@ def main():
                     )
             if save_output:
                 frame_vis = visualizer.get_image()
-                if input_type == 'webcam':
-                    if video_writer is None:
-                        # the size of the image with visualization may vary
-                        # depending on the presence of heatmaps
-                        video_writer = cv2.VideoWriter(output_file, fourcc, fps,
-                                                    (frame_vis.shape[1],
-                                                        frame_vis.shape[0]))
-                    video_writer.write(mmcv.rgb2bgr(frame_vis))
-                else: # video
-                    frames_to_save[frame_idx - 1] = frame_vis
+                if video_writer is None:
+                    # the size of the image with visualization may vary
+                    # depending on the presence of heatmaps
+                    video_writer = cv2.VideoWriter(output_file, fourcc, fps,
+                                                (frame_vis.shape[1],
+                                                    frame_vis.shape[0]))
+                video_writer.write(mmcv.rgb2bgr(frame_vis))
 
             if show:
                 # press ESC to exit
@@ -291,11 +288,6 @@ def main():
                 time.sleep(args.show_interval)
 
         video.release()
-        if save_output and input_type == 'video':
-            video_writer = cv2.VideoWriter(output_file, fourcc, fps, 
-                                   (frames_to_save[0].shape[1], frames_to_save[0].shape[0]))
-            for idx, frame_vis in enumerate(frames_to_save):
-                video_writer.write(mmcv.rgb2bgr(frame_vis))
 
         if video_writer:
             video_writer.release()
