@@ -1,7 +1,3 @@
-# Copyright (c) OpenMMLab. All rights reserved.
-import logging
-import mimetypes
-import os
 import time
 from argparse import ArgumentParser
 from functools import partial
@@ -11,68 +7,28 @@ import json_tricks as json
 import mmcv
 import mmengine
 import numpy as np
-from mmengine.logging import print_log
 
-from mmpose.apis import (_track_by_iou, _track_by_oks,
+from mmpose.apis import (_track_by_iou, 
                          convert_keypoint_definition, extract_pose_sequence,
                          inference_pose_lifter_model, inference_topdown,
-                         init_model)
-from mmpose.models.pose_estimators import PoseLifter
-from mmpose.models.pose_estimators.topdown import TopdownPoseEstimator
-from mmpose.registry import VISUALIZERS
-from mmpose.structures import (PoseDataSample, merge_data_samples,
-                               split_instances)
-from mmpose.utils import adapt_mmdet_pipeline
+                         )
+from mmpose.structures import (PoseDataSample, merge_data_samples)
 
-try:
-    from mmdet.apis import inference_detector, init_detector
-    has_mmdet = True
-except (ImportError, ModuleNotFoundError):
-    has_mmdet = False
+from mmdet.apis import inference_detector
 
-def process_one_image(args, detector, frame, frame_idx, pose_estimator,
+def process_one_image(detector, frame, frame_idx, pose_estimator,
                       pose_est_results_last, pose_est_results_list, next_id,
-                      pose_lifter, visualize_frame, visualizer):
+                      pose_lifter, visualize_frame, visualizer, show):
     """Visualize detected and predicted keypoints of one image.
 
-    Pipeline of this function:
-
-                              frame
-                                |
-                                V
-                        +-----------------+
-                        |     detector    |
-                        +-----------------+
-                                |  det_result
-                                V
-                        +-----------------+
-                        |  pose_estimator |
-                        +-----------------+
-                                |  pose_est_results
-                                V
-            +--------------------------------------------+
-            |  convert 2d kpts into pose-lifting format  |
-            +--------------------------------------------+
-                                |  pose_est_results_list
-                                V
-                    +-----------------------+
-                    | extract_pose_sequence |
-                    +-----------------------+
-                                |  pose_seq_2d
-                                V
-                         +-------------+
-                         | pose_lifter |
-                         +-------------+
-                                |  pose_lift_results
-                                V
-                       +-----------------+
-                       | post-processing |
-                       +-----------------+
-                                |  pred_3d_data_samples
-                                V
-                         +------------+
-                         | visualizer |
-                         +------------+
+    Pipeline:
+    1. Detect keypoints with `detector`.
+    2. Estimate 2D poses with `pose_estimator`.
+    3. Convert 2D keypoints for pose lifting.
+    4. Extract pose sequence with `extract_pose_sequence`.
+    5. Lift poses to 3D with `pose_lifter`.
+    6. Apply post-processing.
+    7. Visualize results with `visualizer`.
 
     Args:
         args (Argument): Custom command-line arguments.
@@ -114,16 +70,13 @@ def process_one_image(args, detector, frame, frame_idx, pose_estimator,
     # filter out the person instances with category and bbox threshold
     # e.g. 0 for person in COCO
     bboxes = pred_instance.bboxes
-    bboxes = bboxes[np.logical_and(pred_instance.labels == args.det_cat_id,
-                                   pred_instance.scores > args.bbox_thr)]
+    bboxes = bboxes[np.logical_and(pred_instance.labels == 0,
+                                   pred_instance.scores > 0.3)]
 
     # estimate pose results for current image
     pose_est_results = inference_topdown(pose_estimator, frame, bboxes)
 
-    if args.use_oks_tracking:
-        _track = partial(_track_by_oks)
-    else:
-        _track = _track_by_iou
+    _track = _track_by_iou
 
     pose_det_dataset_name = pose_estimator.dataset_meta['dataset_name']
     pose_est_results_converted = []
@@ -153,7 +106,7 @@ def process_one_image(args, detector, frame, frame_idx, pose_estimator,
         # track id
         track_id, pose_est_results_last, _ = _track(data_sample,
                                                     pose_est_results_last,
-                                                    args.tracking_thr)
+                                                    0.3)
         if track_id == -1:
             if np.count_nonzero(keypoints[:, :, 1]) >= 3:
                 track_id = next_id
@@ -197,12 +150,11 @@ def process_one_image(args, detector, frame, frame_idx, pose_estimator,
         step=pose_lift_dataset.get('seq_step', 1))
 
     # conduct 2D-to-3D pose lifting
-    norm_pose_2d = not args.disable_norm_pose_2d
     pose_lift_results = inference_pose_lifter_model(
         pose_lifter,
         pose_seq_2d,
         image_size=visualize_frame.shape[:2],
-        norm_pose_2d=norm_pose_2d)
+        norm_pose_2d=True)
 
     # post-processing
     for idx, pose_lift_result in enumerate(pose_lift_results):
@@ -223,9 +175,8 @@ def process_one_image(args, detector, frame, frame_idx, pose_estimator,
         keypoints[..., 2] = -keypoints[..., 2]
 
         # rebase height (z-axis)
-        if not args.disable_rebase_keypoint:
-            keypoints[..., 2] -= np.min(
-                keypoints[..., 2], axis=-1, keepdims=True)
+        keypoints[..., 2] -= np.min(
+            keypoints[..., 2], axis=-1, keepdims=True)
 
         pose_lift_results[idx].pred_instances.keypoints = keypoints
 
@@ -235,9 +186,6 @@ def process_one_image(args, detector, frame, frame_idx, pose_estimator,
     pred_3d_data_samples = merge_data_samples(pose_lift_results)
     det_data_sample = merge_data_samples(pose_est_results)
     pred_3d_instances = pred_3d_data_samples.get('pred_instances', None)
-
-    if args.num_instances < 0:
-        args.num_instances = len(pose_lift_results)
 
     # Prepare the 2D bounding boxes for return
     bboxes_2d = np.array([data_sample.pred_instances.bboxes for data_sample in pose_est_results])
@@ -252,10 +200,10 @@ def process_one_image(args, detector, frame, frame_idx, pose_estimator,
             draw_gt=False,
             dataset_2d=pose_det_dataset_name,
             dataset_3d=pose_lift_dataset_name,
-            show=args.show,
+            show=show,
             draw_bbox=True,
-            kpt_thr=args.kpt_thr,
-            num_instances=args.num_instances,
-            wait_time=args.show_interval)
+            kpt_thr=0.3,
+            num_instances=1,
+            wait_time=0)
 
     return pose_est_results, pose_est_results_list, pred_3d_instances, next_id, bboxes_2d

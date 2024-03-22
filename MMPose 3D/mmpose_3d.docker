@@ -2,7 +2,7 @@
 # docker build -f mmpose_3d.docker -t mmpose_3d .
 # 
 # To run a container:
-# docker run -it --rm --gpus all --shm-size=8g -e DISPLAY=unix$DISPLAY --device /dev/video0 --mount type=bind,source=$(echo $HOME)/mmpose_3d_tmp,target=/tmp --mount type=bind,source=/tmp/.X11-unix,target=/tmp/.X11-unix mmpose_3d /bin/bash -c 'cat mmpose_3d.readme.txt; bash'
+# docker run -it --rm --gpus all --shm-size=8g -e DISPLAY=unix$DISPLAY --device /dev/video0 --mount type=bind,source=$(echo $HOME)/mmpose_3d_tmp,target=/tmp --mount type=bind,source=/tmp/.X11-unix,target=/tmp/.X11-unix mmpose_3d /bin/bash -c 'cat mmpose_3d.readme.txt; bash test.sh; bash'
 
 
 FROM mmpose_inferencer:latest
@@ -26,5 +26,6 @@ COPY two_people_standing.jpg mmpose_3d_examples/
 COPY body3d_pose_extractor.py .
 COPY processimage.py .
 COPY mmpose_3d.readme.txt .
+COPY test.sh .
 
 COPY body3d_pose_extractor_Ireland.py .
